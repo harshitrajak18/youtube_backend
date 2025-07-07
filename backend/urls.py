@@ -22,7 +22,7 @@ from youtube.views import(
     LoginUser,UserProfileView,
     UploadVideoView,
     VideoFeedView,
-    VideoDetailView,
+    VideoUnifiedView,
     LikeToggleView,
     CommentView
 )
@@ -38,7 +38,8 @@ urlpatterns = [
     path('user-profile/<str:email>/',UserProfileView.as_view(),name='user-profile'),
      path('upload-video/<str:email>/', UploadVideoView.as_view(), name='upload-video'),
       path('feed/', VideoFeedView.as_view(), name='video-feed'),
-       path('videos/<int:id>/', VideoDetailView.as_view(), name='video_detail'),
+     path('videos/', VideoUnifiedView.as_view(), name='video_list_or_search'),         # Handles list or search
+    path('videos/<int:id>/', VideoUnifiedView.as_view(), name='video_detail'), 
         path('videos/<int:id>/like-toggle/', LikeToggleView.as_view(), name='like-toggle'),
         path('videos/<int:id>/comments/',CommentView.as_view(),name='comment' )
 ]

@@ -15,6 +15,7 @@ from rest_framework.parsers import MultiPartParser, FormParser,JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 logger = logging.getLogger(__name__)
 
 # Create your views here.
@@ -171,39 +172,75 @@ class VideoFeedView(APIView):
                 #'duration': video.duration,
                 'uploaded_by': {
                     'username': video.uploaded_by.username,
-                    'profile_photo': video.uploaded_by.profile.profile_image.url if hasattr(video.uploaded_by, 'profile') and video.uploaded_by.profile.profile_image else '',
+                    'profile_photo': video.uploaded_by.profile_image.url if video.uploaded_by.profile_image else '',
+
                 },
             })
 
         return Response({'videos': videos_data})  
     
-class VideoDetailView(APIView):
+class VideoUnifiedView(APIView):
     permission_classes = [AllowAny]
 
-    def get(self, request, id):
-        video = get_object_or_404(Video, id=id)
+    def get(self, request, id=None):
         user = request.user if request.user.is_authenticated else None
 
-        liked = False
-        if user:
-            liked = Like.objects.filter(video=video, author=user).exists()
+        # ✅ Case 1: If ID is provided, return a single video
+        if id:
+            video = get_object_or_404(Video, id=id)
+            liked = False
+            if user:
+                liked = Like.objects.filter(video=video, author=user).exists()
 
-        data = {
-            "id": video.id,
-            "title": video.title,
-            "video_url": str(video.video_file.url),
-            "thumbnail_url": str(video.thumbnail.url) if video.thumbnail else "",
-            "uploaded_by": {
-                "username": video.uploaded_by.username,
-                "profile_photo": str(video.uploaded_by.profile_image.url) if video.uploaded_by.profile_image else ""
-            },
-            "uploaded_at": video.uploaded_at.isoformat(),
-            "description": video.description if hasattr(video, 'description') else "",
-            "likes": video.likes.count(),
-            "liked": liked,
-        }
-        return Response(data, status=status.HTTP_200_OK)
+            return Response({
+                "id": video.id,
+                "title": video.title,
+                "video_url": str(video.video_file.url),
+                "thumbnail_url": str(video.thumbnail.url) if video.thumbnail else "",
+                "uploaded_by": {
+                    "username": video.uploaded_by.username,
+                    "profile_photo": (
+                        video.uploaded_by.profile_image.url
+                        if video.uploaded_by.profile_image else ""
+                    )
+                },
+                "uploaded_at": video.uploaded_at.isoformat(),
+                "description": video.description or "",
+                "likes": video.likes.count(),
+                "liked": liked,
+            })
 
+        # ✅ Case 2: If no ID — return a list (optionally filtered by `search`)
+        query = request.query_params.get("search", "").strip()
+        if query:
+            videos = Video.objects.filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(uploaded_by__username__icontains=query)
+            )
+        else:
+            videos = Video.objects.all()
+
+        videos = videos.order_by("-uploaded_at")
+        data = []
+        for video in videos:
+            data.append({
+                "id": video.id,
+                "title": video.title,
+                "description": video.description,
+                "thumbnail_url": video.thumbnail.url if video.thumbnail else '',
+                "video_url": video.video_file.url if video.video_file else '',
+                "uploaded_at": video.uploaded_at.isoformat(),
+                "uploaded_by": {
+                    "username": video.uploaded_by.username,
+                    "profile_photo": (
+                        video.uploaded_by.profile_image.url
+                        if video.uploaded_by.profile_image else ''
+                    ),
+                },
+            })
+
+        return Response({"videos": data})
 
 class LikeToggleView(APIView):
     permission_classes = [IsAuthenticated]

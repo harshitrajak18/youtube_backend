@@ -34,3 +34,5 @@ dj-database-url==2.2.0
 python-dotenv==1.0.1
 gunicorn==21.2.0
 celery==5.3.6
+
+python-decouple==3.8
