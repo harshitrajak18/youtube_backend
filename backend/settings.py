@@ -53,9 +53,12 @@ ASGI_APPLICATION = 'backend.asgi.application'
 
 # -------------------- DATABASE --------------------
 DATABASES = {
-    'default': dj_database_url.parse(env("DATABASE_URL"))
+    'default': dj_database_url.config(
+        default=env('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
-
 # -------------------- CHANNELS --------------------
 CHANNEL_LAYERS = {
     "default": {
@@ -90,6 +93,7 @@ CLOUDINARY_STORAGE = {
     'API_KEY': env('CLOUDINARY_API_KEY'),
     'API_SECRET': env('CLOUDINARY_API_SECRET'),
 }
+
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 cloudinary.config(
