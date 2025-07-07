@@ -26,11 +26,11 @@ from youtube.views import(
     LikeToggleView,
     CommentView
 )
-from rest_framework.response import Response
+
 
 
 urlpatterns = [
-     path('', lambda request: Response({'message': 'YouTube API Backend is Running ✅'})),
+    
     path('admin/', admin.site.urls),
     path('login/',LoginUser.as_view(),name='login'),
     path('register/',RegisterUser.as_view(),name='register'),
